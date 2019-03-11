@@ -35,26 +35,34 @@ int main()
     {
         if(std::prev(it) == ls.end())
             cout<<" std::pre(it) ==  ls.end()"<<endl;
-        cout<<"*it: "<<*it<<" *it->pre: "<<*std::prev(it)<<" *it->pre->pre: "<<*std::prev(std::prev(it))<<endl;
+        cout<<"*it: "<<*it<<" *it->pre: "<<*std::prev(it)
+        <<" *it->pre->pre: "<<*std::prev(std::prev(it))
+        <<" *it->pre->pre->pre: "<<*std::prev(std::prev(std::prev(it)))<<endl;
     }
 
     for(list<int>::iterator it = ls.begin(); it!= ls.end(); ++it)
     {
         if(std::next(it) == ls.end())
             cout<<" std::next(it) ==  ls.end()"<<endl;
-        cout<<"*it: "<<*it<<" *it->next: "<<*std::next(it)<<" *it->next->next: "<<*std::next(std::next(it))<<endl;
+        cout<<"*it: "<<*it<<" *it->next: "<<*std::next(it)
+        <<" *it->next->next: "<<*std::next(std::next(it))
+        <<" *it->next->next->next: "<<*std::next(std::next(std::next(it)))
+        <<endl;
     }
     cout<<endl;
 
 
     int scalar(100);
-    Point offset(10, 10);
+    Point offset(200, 200);
     //vector<Point> vertices{Point(0, 0)*scalar+offset, Point(1, 0)*scalar+offset, Point(2, 1)*scalar+offset, Point(1, 2)*scalar+offset, Point(0, 1)*scalar+offset};
 
-    vector<Point> vertices{
+    /*vector<Point> vertices{
         Point(0,0), Point(1,0), Point(2,1), Point(3.0), Point(4,2),
         Point(2,4), Point(3,2), Point(0,1), Point(2,1)
-    };
+    };*/
+    vector<Point> vertices{
+            Point(3,1), Point(1,3), Point(-1,2), Point(1,2),
+            Point(1,1), Point(0,0), Point(1,0)};
 
     cout<<"vertices: "<<endl;
     for(int i=0; i<vertices.size(); ++i)

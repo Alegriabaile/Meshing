@@ -11,6 +11,16 @@ using namespace std;
 //调试用
 //#define DEBUG_TRIANGULATE_SIMPLE_POLYGON
 
+/*输入顶点集坐标默认按普通坐标系处理：
+ * y
+ * ^
+ * |
+ * o ——> x
+ * 如果是opencv顶点坐标，则需要自己先行处理好
+ * （比如按顺时针方向顺序输入轮廓顶点集）
+ */
+
+//三个基础函数
 //A:i-1, B:i, C:i+1
 static bool isConcave(const Point& A, const Point& B, const Point& C)
 {
@@ -18,8 +28,8 @@ static bool isConcave(const Point& A, const Point& B, const Point& C)
     //if(v1.cross(v2)<0, 顺时针旋转
     //AB->BC逆时针则为凸点，否则为凹点
     return ((B - A).cross(C - B) < 0);//顺时针则定为凹点
+    //return ((C - B).cross(B - A) < 0);//opencv 坐标系
 }
-
 //逆时针三角形ABC与凹点，若凹点在三角形里面，则凹点在AB，BC和CA左边
 static bool isInside(const Point& A, const Point& B, const Point& C, const Point& concave)
 {
@@ -30,29 +40,65 @@ static bool isInside(const Point& A, const Point& B, const Point& C, const Point
     return false;
 }
 
-//A:i-1, B:i, C:i+1; B is an ear tip if all concaves are outside triangle ABC
-static bool isEarTip(const Point& A, const Point& B, const Point& C, const vector<bool> & concave, const vector<Point>& vertices)
+static bool isIntersected(const Point& a, const Point& b, const Point& c, const Point& d)
 {
-    for(int i=0; i<concave.size(); ++i)
+    if(max(a.x, b.x) < min(c.x, d.x))
+        return false;
+    if(max(a.y, b.y) < min(c.y, d.y))
+        return false;
+
+    if(max(c.x, d.x) < min(a.x, b.x))
+        return false;
+    if(max(c.y, d.y) < min(a.y, b.y))
+        return false;
+    //平行不算相交
+    if((a-c).cross(d-c)*(d-c).cross(b-c)<=0)
+        return false;
+
+    if((d-a).cross(b-a)*(b-a).cross(c-a)<=0)
+        return false;
+
+    return true;
+}
+//A:i-1, B:i, C:i+1; B is an ear tip if all concaves are outside triangle ABC
+static bool isEarTip(const Point& A, const Point& B, const Point& C, const vector<bool> & concave, const vector<Point>& vertices, const list<int>& indices)
+{
+    for(auto iter = indices.cbegin(); iter != indices.cend(); ++iter)
     {
-        if(!concave[i])
+        if(!concave[*iter])
             continue;
-        if(isInside(A, B, C, vertices[i]))
+
+        auto iter_pre = std::prev(iter);
+        auto iter_next = std::next(iter);
+
+        if(iter_pre == indices.cend())
+            iter_pre = std::prev(iter_pre);
+        if(iter_next == indices.cend())
+            iter_next = std::next(iter_next);
+
+        //若凹点不在三角形内部(可以在三角形△ABC边上)
+        if(isInside(A, B, C, vertices[*iter]))
+            return false;
+
+        //若凹点不在AC上(不与AC共线，则说明在AB/BC上)，且其相邻点组成的线段交于AC线段，则三角形ABC内部存在非mask点
+        if( isIntersected(A, C, vertices[*iter_pre], vertices[*iter]) ||
+            isIntersected(A, C, vertices[*iter], vertices[*iter_next]))
             return false;
     }
 
     return true;
 }
 
-//是不是可以只更新相邻的两个顶点？
+//初始化
 static void updateLists(const vector<Point>& vertices, list<int>& indices, vector<bool>& concave, vector<bool>& eartips)
 {
     //状态清零
+    /*
     for(int i=0; i<concave.size(); ++i)
     {
         concave[i] = false;
         eartips[i] = false;
-    }
+    }*/
     //寻找凹点
     for(list<int>::iterator iter = indices.begin(); iter!=indices.end(); ++iter)
     {
@@ -68,8 +114,9 @@ static void updateLists(const vector<Point>& vertices, list<int>& indices, vecto
         Point B = vertices[*iter];
         Point C = vertices[*iter_next];
 
-        if(isConcave( A, B, C))
-            concave[*iter] = true;
+        //if(isConcave( A, B, C))
+        //    concave[*iter] = true;
+        concave[*iter] = isConcave(A, B, C);
     }
     //更新EarTip点
     for(list<int>::iterator iter = indices.begin(); iter!=indices.end(); ++iter)
@@ -86,58 +133,47 @@ static void updateLists(const vector<Point>& vertices, list<int>& indices, vecto
         Point B = vertices[*iter];
         Point C = vertices[*iter_next];
 
-        if(!concave[*iter] && isEarTip(A, B, C, concave, vertices))
-            eartips[*iter] = true;
+        //if(!concave[*iter] && isEarTip(A, B, C, concave, vertices))
+        //    eartips[*iter] = true;
+        if(!concave[*iter])
+            eartips[*iter] = isEarTip(A, B, C, concave, vertices, indices);
     }
 }
-//只更新相邻的两个顶点？
-static void updateLists(const vector<Point>& vertices, const list<int>& indices, const list<int>::iterator& old_next_, vector<bool>& concave, vector<bool>& eartips)
+//更新相应节点的信息
+static void updateConcave(const vector<Point>& vertices, const list<int>& indices, const list<int>::const_iterator& iter, vector<bool>& concave)
 {
-    //定位旧节点的前顶点与后顶点
-    list<int>::iterator old_pre = std::prev(old_next_);
-    list<int>::iterator old_next = old_next;
-    if(old_pre == indices.end())
-        old_pre = std::prev(old_pre);
-    if(old_next == indices.end())
-        old_next = std::next(old_next);
+    list<int>::const_iterator iter_pre = std::prev(iter);
+    list<int>::const_iterator iter_next = std::next(iter);
 
-    //先将状态清空
-    concave[*old_pre] = false;
-    concave[*old_next] = false;
-    eartips[*old_pre] = false;
-    eartips[*old_next] = false;
+    if(iter_pre == indices.end())
+        iter_pre = std::prev(iter_pre);
+    if(iter_next == indices.end())
+        iter_next = std::next(iter_next);
 
-    //update concave pre
-    list<int>::iterator iter_pre1 = std::prev(old_pre);
-    list<int>::iterator iter_next1 = old_next;
-    if (iter_pre1 == indices.end())
-        iter_pre1 = std::prev(iter_pre1);
+    Point A = vertices[*iter_pre];
+    Point B = vertices[*iter];
+    Point C = vertices[*iter_next];
 
-    Point A1 = vertices[*iter_pre1];
-    Point B1 = vertices[*old_pre];
-    Point C1 = vertices[*iter_next1];
-    if(isConcave( A1, B1, C1))
-            concave[*old_pre] = true;
+    concave[*iter] = isConcave( A, B, C);
+}
+static void updateEarTip(const vector<Point>& vertices, const list<int>& indices, const list<int>::const_iterator& iter, const vector<bool>& concave, vector<bool>& eartip)
+{
+    list<int>::const_iterator iter_pre = std::prev(iter);
+    list<int>::const_iterator iter_next = std::next(iter);
 
-    //update concave next
-    list<int>::iterator iter_pre2 = old_pre;
-    list<int>::iterator iter_next2 = std::next(old_next);
-    if (iter_next2 == indices.end())
-        iter_next2 = std::next(iter_next2);
+    if(iter_pre == indices.end())
+        iter_pre = std::prev(iter_pre);
+    if(iter_next == indices.end())
+        iter_next = std::next(iter_next);
 
-    Point A2 = vertices[*iter_pre2];
-    Point B2 = vertices[*old_next];
-    Point C2 = vertices[*iter_next2];
-    if(isConcave( A2, B2, C2))
-        concave[*old_next] = true;
-
-    //更新EarTip点
-    if(!concave[*old_pre])
-        eartips[*old_pre] = isEarTip(A1, B1, C1, concave, vertices);
-    if(!concave[*old_next])
-        eartips[*old_next] = isEarTip(A2, B2, C2, concave, vertices);
+    Point A = vertices[*iter_pre];
+    Point B = vertices[*iter];
+    Point C = vertices[*iter_next];
+    if(!concave[*iter])
+        eartip[*iter] = isEarTip(A, B, C, concave, vertices, indices);
 }
 
+//实际调用函数
 int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>& triangles)
 {
     //vector<Point> triangles;
@@ -154,9 +190,8 @@ int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>& trian
     //记录凹点与耳点
     vector<bool> concave(vertices.size(), false);
     vector<bool> eartips(vertices.size(), false);
-
-
-    list<int>::iterator old_next;
+    //初始化，O(n**2)
+    updateLists(vertices, indices, concave, eartips);
     while(indices.size() >=3)
     {
 #ifdef DEBUG_TRIANGULATE_SIMPLE_POLYGON
@@ -183,7 +218,6 @@ int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>& trian
         imshow("debug", Mat(800, 800, CV_8UC1, Scalar(0)));
         waitKey();
 #endif
-        updateLists(vertices, indices, concave, eartips);
         for(int i=0; i<eartips.size(); ++i)
         {
             if (eartips[i])
@@ -201,14 +235,30 @@ int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>& trian
                 triangles.push_back(vertices[*iter]);
                 triangles.push_back(vertices[*iter_next]);
 
+                eartips[*iter] = false;
+                list<int>::iterator  temp_next = std::next(iter);
+                list<int>::iterator temp_pre = std::prev(iter);
                 indices.erase(iter);
+                if(temp_next == indices.end())
+                    temp_next = std::next(temp_next);
+                if(temp_pre == indices.end())
+                    temp_pre = std::prev(temp_pre);
+
+
+                //必须先将所有Concave找出来，才能进行Eartip的判定
+                //只有被clipped节点的相邻节点的状态才会发生改变，所以不需要对所有剩余节点进行状态更新
+                updateConcave(vertices, indices, temp_pre, concave);
+                updateConcave(vertices, indices, temp_next, concave);
+                updateEarTip(vertices, indices, temp_pre, concave, eartips);
+                updateEarTip(vertices, indices, temp_next, concave, eartips);
 
 #ifdef DEBUG_TRIANGULATE_SIMPLE_POLYGON
                 if(iter == indices.end())
                     cout<<"error in find eartips i in indices"<<endl;
                 cout<<"iter: "<<*iter<<" i: "<<i;
                 cout<<" iter_pre: "<<*iter_pre<<
-                " iter_next: "<<*iter_next<<endl<<endl;
+                " iter_next: "<<*iter_next<<endl
+                <<" temp_pre, temp_next: "<<*temp_pre<<", "<<*temp_next<<endl<<endl;
 #endif
                 break;
             }

@@ -6,15 +6,15 @@
 using namespace cv;
 using namespace std;
 
-extern vector<Point>& triangulateSimplePolygon(vector<Point>& vertices);
+extern int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>& triangles);
 //全局变量声明部分
 Mat g_srcImage, g_dstImage, g_grayImage, g_maskImage;//定义原始图、目标图、灰度图、掩膜图
 int g_nFillMode = 1;//漫水填充的模式
 int g_nLowDifference = 20, g_nUpDifference = 20;//负差最大值，正差最大值
-int g_nConnectivity = 4;//表示floodFill函数标识符低八位的连通值
+int g_nConnectivity = 4;//表示floodFill函数标识符低八位的
 bool g_bIsColor = true;//是否为彩色图的标识符布尔值
 bool g_bUseMask = true;//是否显示掩膜窗口的布尔值
-int g_nNewMaskVal = 255;//新的重新绘制的像素值
+int g_nNewMaskVal = 255;
 
 //===============【onMouse()函数】=======================
 static void onMouse(int event, int x, int y, int, void *) {
@@ -28,7 +28,7 @@ static void onMouse(int event, int x, int y, int, void *) {
     int UpDifference = g_nFillMode == 0 ? 0 : g_nUpDifference;
 
     //标识符的0~7位为g_nConnectivity，8~15位为g_nNewMaskVal左移8位的值，16~23位为CV_FLOODFILL_FIXED_RANGE或者0
-    int flags = g_nConnectivity + (g_nNewMaskVal << 8) + (g_nFillMode == 1 ? FLOODFILL_FIXED_RANGE : 0);
+    int flags = 4/*连通值,4连通还是8连通*/ + (255/*新的重新绘制的像素值*/ << 8) + (g_nFillMode == 1 ? FLOODFILL_FIXED_RANGE : 0);
 
     //随机生成BGR值
     int b = (unsigned)theRNG() & 255;//随机返回一个0~255之间的值
@@ -54,12 +54,6 @@ static void onMouse(int event, int x, int y, int, void *) {
         vector<vector<Point>> contours;
         vector<Vec4i> hierarchy;
         findContours(mask_draw, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE, Point(-1, -1));
-        //for (int i = 0; i < hierarchy.size(); i++)
-        //{
-            //Scalar color = Scalar(rand() % 255, rand() % 255, rand() % 255);
-            //drawContours(color_draw, contours, i, color, CV_FILLED, 8, hierarchy);
-        Scalar color = Scalar(0, 0, 255);
-
 
         vector<vector<Point>> contours_poly(contours.size());
         cv::Mat rdp = g_srcImage.clone();
@@ -70,25 +64,47 @@ static void onMouse(int event, int x, int y, int, void *) {
             //cout << pointListOut[i].x << "," << pointListOut[i].y << endl;
             cv::line(rdp, pointListOut[i], pointListOut[i+1], cv::Scalar(0,0,255), 1, CV_AA);
             cout<<pointListOut[i]<<","<< pointListOut[i+1]<<"\t";
-        }*/
+        }
         for(int i=0; i<contours_poly.size(); ++i)
         {
-            cv::approxPolyDP(contours[i], contours_poly[i], 5, true);
+            cv::approxPolyDP(contours[i], contours_poly[i], 2, true);
         }
         for(int i=0; i<contours_poly.size(); ++i)
         {
             drawContours(rdp, contours_poly, i, color, 1, 8, hierarchy);
             drawContours(color_draw, contours, i, color, 1, 8, hierarchy);
+        }*/
+
+        if(contours.size()>0)
+        {
+            cv::approxPolyDP(contours[0], contours_poly[0], 2, true);
+            for(size_t i=0;i< contours_poly[0].size()-1;i++)
+            {
+                //cout << pointListOut[i].x << "," << pointListOut[i].y << endl;
+                cv::line(rdp, contours_poly[0][i], contours_poly[0][i+1], cv::Scalar(0,0,255), 1, CV_AA);
+                cout<<contours_poly[0][i]<<","<< contours_poly[0][i+1]<<"\t";
+            }
+            drawContours(color_draw, contours, 0, Scalar(0, 0, 255), 1, 8, hierarchy);
+            //drawContours(rdp, contours_poly, 0, Scalar(0, 0, 255), 1, 8, hierarchy);
         }
 
-        Mat simplePoly = g_srcImage.clone();
+        Mat simplePoly(g_maskImage.size(), CV_8UC3, Scalar(255,255,255));
         if(contours_poly.size()>0)
         {
             vector<Point> triangles;
-
-            for(int i=0; i<contours_poly[0].size()-1; ++i)
+            vector<Point> vertices;
+            vertices.reserve(contours_poly[0].size());
+            for(auto iter = contours_poly[0].rbegin(); iter!=contours_poly[0].rend(); ++iter)
+                vertices.push_back(*iter);
+            triangulateSimplePolygon(vertices, triangles);
+            for(int i=0; i<triangles.size()/3; ++i)
             {
-                cv::line(simplePoly, contours_poly[0][i], contours_poly[0][i+1], cv::Scalar(0,0,255), 1, CV_AA);
+                cv::line(simplePoly, triangles[i*3+0], triangles[i*3+1], cv::Scalar(0,0,255), 1, CV_AA);
+                cv::line(simplePoly, triangles[i*3+1], triangles[i*3+2], cv::Scalar(0,0,255), 1, CV_AA);
+                cv::line(simplePoly, triangles[i*3+2], triangles[i*3+0], cv::Scalar(0,0,255), 1, CV_AA);
+                cv::circle(simplePoly, triangles[i*3+0], 2, Scalar(0, 0, 0), -1, FILLED);
+                cv::circle(simplePoly, triangles[i*3+1], 2, Scalar(0, 0, 0), -1, FILLED);
+                cv::circle(simplePoly, triangles[i*3+2], 2, Scalar(0, 0, 0), -1, FILLED);
             }
         }
         imshow("simplePoly", simplePoly);
@@ -186,14 +202,6 @@ int main(int argc, char** argv) {
             case '6':
                 cout << "键盘‘6’被按下，使用渐变、浮动范围的漫水填充\n";
                 g_nFillMode = 2;
-                break;
-            case '7':
-                cout << "键盘‘7’被按下，操作标识符的低八位使用4位的连接模式\n";
-                g_nConnectivity = 4;
-                break;
-            case '8':
-                cout << "键盘‘8’被按下，操作标识符的低八位使用8为的连接模式\n";
-                g_nConnectivity = 8;
                 break;
         }
 

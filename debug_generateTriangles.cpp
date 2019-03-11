@@ -1,7 +1,11 @@
 //
-// Created by ale on 19-3-5.
+// Created by ale on 19-3-11.
 //
 
+//
+// Created by ale on 19-3-5.
+//
+#include <vector>
 #include <opencv2/opencv.hpp>
 using namespace cv;
 using namespace std;
@@ -26,11 +30,30 @@ static void onMouse(int event, int x, int y, int, void *) {
     Mat mask_draw = g_maskImage.clone();
     Mat color_draw = g_srcImage.clone();
     Mat color_draw_triangle = g_srcImage.clone();
+
     Point seed = Point(x, y);
+    double minVal, maxVal;
+    Point minLoc, maxLoc;
+    minMaxLoc(g_depthImage, &minVal, &maxVal, &minLoc, &maxLoc);
+    if(maxVal > 0)
+        seed = maxLoc;
+    else
+        return;
+
     double diff = 0.05*g_depthImage.at<float>(seed.y, seed.x);
     int temp = floodFillWithoutHoles(g_depthImage, mask_draw, seed, diff*20.0/double(g_nLowDifference), diff*20.0/double(g_nUpDifference));
     cout<<"temp: "<<temp<<endl;
     imshow("mask_draw", mask_draw);
+
+    //g_depthImage.setTo(0, mask_draw);
+    //g_srcImage.setTo(Scalar(0,0,0), mask_draw);
+    for(int i=0; i<mask_draw.rows; ++i)
+        for(int j=0; j<mask_draw.cols; ++j)
+            if(mask_draw.at<uchar>(i,j) > 0)
+            {
+                g_depthImage.at<float>(i,j) = 0;
+                g_srcImage.at<Vec3b>(i,j) = Vec3b(0,0,0);
+            }
 
     vector<Point> contour;
     //antiClockContour(mask_draw, seed, contour);
@@ -66,31 +89,6 @@ static void onMouse(int event, int x, int y, int, void *) {
     }
     cout<<"sum(mask): "<<sum(mask_draw)/255<<"\t contour sizes:"<<contour.size()<<"\t triangle sizes: "<<triangles.size()/3<<endl;
     imshow("color_draw_triangle", color_draw_triangle);
-    /*
-vector<vector<Point>> contours;
-vector<Vec4i> hierarchy;
-findContours(mask_draw, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE, Point(-1, -1));
-
-vector<vector<Point>> contours_poly(contours.size());
-cv::Mat rdp = g_srcImage.clone();
-cout<<endl<<"rdp: "<<endl;
-
-for(int i=0; i<contours_poly.size(); ++i)
-{
-    cv::approxPolyDP(contours[i], contours_poly[i], 5, true);
-}
-for(int i=0; i<contours_poly.size(); ++i)
-{
-    Scalar color = Scalar(0,0,255);
-    drawContours(rdp, contours_poly, i, color, 1, 8, hierarchy);
-    drawContours(color_draw, contours, i, color, 1, 8, hierarchy);
-}
-cout<<endl;
-//}
-cout<<"hierarchy.size(): "<<hierarchy.size()<<endl;
-imshow("contours", color_draw);
-imshow("rdp", rdp);
- */
 }
 
 //main()函数
