@@ -20,13 +20,13 @@ static bool isConnected(const double& baseVal, const double& newVal, const doubl
     return false;
 }
 
-static int floodFillUp(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff)
+static int floodFillUp(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff, const bool isStrict = false)
 {
     if(radius >0 && curPoint.y-1>=0)
     {
         double curVal = gray.at<float>(curPoint.y, curPoint.x);
         double nextVal = gray.at<float>(curPoint.y-1, curPoint.x);
-        if(/*isConnected(seedVal, nextVal, lowDiff, highDiff) &&*/isConnected(curVal, nextVal, lowDiff, highDiff))
+        if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x, curPoint.y-1));
             return floodFillUp(points, gray, Point(curPoint.x, curPoint.y-1), seedVal, radius-1, lowDiff, highDiff)+1;
@@ -36,13 +36,13 @@ static int floodFillUp(vector<Point>& points, const Mat& gray, const Point& curP
     return 0;
 }
 
-static int floodFillDown(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff)
+static int floodFillDown(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff, const bool isStrict = false)
 {
     if(radius >0 && curPoint.y+1<gray.rows)
     {
         double curVal = gray.at<float>(curPoint.y, curPoint.x);
         double nextVal = gray.at<float>(curPoint.y+1, curPoint.x);
-        if(/*isConnected(seedVal, nextVal, lowDiff, highDiff) &&*/isConnected(curVal, nextVal, lowDiff, highDiff))
+        if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x, curPoint.y+1));
             return floodFillDown(points, gray, Point(curPoint.x, curPoint.y+1), seedVal, radius-1, lowDiff, highDiff)+1;
@@ -52,13 +52,13 @@ static int floodFillDown(vector<Point>& points, const Mat& gray, const Point& cu
     return 0;
 }
 
-static int floodFillLeft(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff)
+static int floodFillLeft(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff, const bool isStrict = false)
 {
     if(radius >0 && curPoint.x-1>=0)
     {
         double curVal = gray.at<float>(curPoint.y, curPoint.x);
         double nextVal = gray.at<float>(curPoint.y, curPoint.x-1);
-        if(/*isConnected(seedVal, nextVal, lowDiff, highDiff) &&*/isConnected(curVal, nextVal, lowDiff, highDiff))
+        if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x-1, curPoint.y));
             return floodFillLeft(points, gray, Point(curPoint.x-1, curPoint.y), seedVal, radius-1, lowDiff, highDiff)+1;
@@ -68,13 +68,13 @@ static int floodFillLeft(vector<Point>& points, const Mat& gray, const Point& cu
     return 0;
 }
 
-static int floodFillRight(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff)
+static int floodFillRight(vector<Point>& points, const Mat& gray, const Point& curPoint, const double& seedVal, const int& radius, const double& lowDiff, const double& highDiff, const bool isStrict = false)
 {
     if(radius >0 && curPoint.x+1<gray.cols)
     {
         double curVal = gray.at<float>(curPoint.y, curPoint.x);
         double nextVal = gray.at<float>(curPoint.y, curPoint.x+1);
-        if(/*isConnected(seedVal, nextVal, lowDiff, highDiff) &&*/isConnected(curVal, nextVal, lowDiff, highDiff))
+        if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x+1, curPoint.y));
             return floodFillRight(points, gray, Point(curPoint.x+1, curPoint.y), seedVal, radius-1, lowDiff, highDiff)+1;
@@ -84,7 +84,7 @@ static int floodFillRight(vector<Point>& points, const Mat& gray, const Point& c
     return 0;
 }
 
-int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const double lowDiff, const double highDiff)
+int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const double lowDiff, const double highDiff, const bool isStrict = false)
 {
     if(gray.empty())
         return -1;
@@ -135,51 +135,6 @@ int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const d
     //imshow("mask", mask);
     //waitKey();
 #endif
-    /*
-    //up
-    while(base_line.size() <= radius+1)
-    {
-        bool changed = false;
-
-        Point current = base_line[base_line.size()-1];
-        if(current.y>0)
-        {
-            double curVal = gray.at<current.y, current.x>;
-            double nextVal = gray.at<current.y-1, current.x>;
-
-            if(isConnected(seedVal, nextVal, lowDiff, highDiff) && isConnected(curVal, nextVal, lowDiff, highDiff))
-            {
-                changed = true;
-                base_line.push_back(Point(current.y-1, current.x));
-            }
-        }
-
-        if(!changed)
-            break;
-    }
-    reverse(base_line.begin(), base_line.end());
-    //down
-    while(base_line.size() <= 2*radius+1)
-    {
-        bool changed = false;
-
-        Point current = base_line[base_line.size()-1];
-        if(current.y<gray.rows-1)
-        {
-            double curVal = gray.at<current.y, current.x>;
-            double nextVal = gray.at<current.y+1, current.x>;
-
-            if(isConnected(seedVal, nextVal, lowDiff, highDiff) && isConnected(curVal, nextVal, lowDiff, highDiff))
-            {
-                changed = true;
-                base_line.push_back(Point(current.y+1, current.x));
-            }
-        }
-
-        if(!changed)
-            break;
-    }
-    */
 
     return 0;
 }

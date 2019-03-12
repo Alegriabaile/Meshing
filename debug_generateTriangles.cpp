@@ -10,7 +10,7 @@
 using namespace cv;
 using namespace std;
 
-extern int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const double lowDiff, const double highDiff);
+extern int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const double lowDiff, const double highDiff, const bool isStrict = false);
 
 extern int antiClockContour(const Mat& mask, const Point& seed, vector<Point>& contour);
 extern int clockWiseContour(const Mat& mask, const Point& seed, vector<Point>& contour);
