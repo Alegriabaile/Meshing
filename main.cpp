@@ -9,11 +9,53 @@
 using namespace cv;
 using namespace std;
 
-extern int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>& triangles);
+class Solution {
+public:
+    int divide(int dividend, int divisor)
+    {
+        if(dividend == 0)
+            return 0;
+
+        long long int result = 0;
+        long long int dividendl(dividend), divisorl(divisor);
+        bool sign = false;
+        if((dividendl<0) ^ (divisor<0))
+            sign = true;
+
+        dividendl = abs(dividendl);
+        divisorl = abs(divisorl);
+
+        int shift = 0;
+        while(dividendl > divisorl<<shift)
+        {
+            shift++;
+        }
+        while(shift>=0)
+        {
+            if(dividendl >= divisorl<<shift)
+            {
+                result += (long long int)1<<shift;//默认为int
+                dividendl -= divisorl<<shift;
+            }
+            shift--;
+        }
+
+        if(sign)
+            result = -result;
+
+        if(result > INT_MAX || result < INT_MIN)
+            return INT_MAX;
+
+
+        return result;
+    }
+
+};
+
 
 int main()
 {
-
+/*
     Point v1(1, 0);
     Point v2(0, 1);
     Point v3;
@@ -51,15 +93,16 @@ int main()
     }
     cout<<endl;
 
-
+*/
+    /*
     int scalar(100);
     Point offset(200, 200);
     //vector<Point> vertices{Point(0, 0)*scalar+offset, Point(1, 0)*scalar+offset, Point(2, 1)*scalar+offset, Point(1, 2)*scalar+offset, Point(0, 1)*scalar+offset};
 
-    /*vector<Point> vertices{
+vector<Point> vertices{
         Point(0,0), Point(1,0), Point(2,1), Point(3.0), Point(4,2),
         Point(2,4), Point(3,2), Point(0,1), Point(2,1)
-    };*/
+    };
     vector<Point> vertices{
             Point(3,1), Point(1,3), Point(-1,2), Point(1,2),
             Point(1,1), Point(0,0), Point(1,0)};
@@ -89,6 +132,9 @@ int main()
 
     flip(image, image, 0);
     imshow("image", image);
-    waitKey();
+    waitKey();*/
+
+    Solution solution;
+    cout<<solution.divide(-2147483648, -1);
     return 0;
 }

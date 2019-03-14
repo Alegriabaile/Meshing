@@ -29,7 +29,7 @@ static int floodFillUp(vector<Point>& points, const Mat& gray, const Point& curP
         if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x, curPoint.y-1));
-            return floodFillUp(points, gray, Point(curPoint.x, curPoint.y-1), seedVal, radius-1, lowDiff, highDiff)+1;
+            return floodFillUp(points, gray, Point(curPoint.x, curPoint.y-1), seedVal, radius-1, lowDiff, highDiff, isStrict)+1;
         }
     }
 
@@ -45,7 +45,7 @@ static int floodFillDown(vector<Point>& points, const Mat& gray, const Point& cu
         if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x, curPoint.y+1));
-            return floodFillDown(points, gray, Point(curPoint.x, curPoint.y+1), seedVal, radius-1, lowDiff, highDiff)+1;
+            return floodFillDown(points, gray, Point(curPoint.x, curPoint.y+1), seedVal, radius-1, lowDiff, highDiff, isStrict)+1;
         }
     }
 
@@ -61,7 +61,7 @@ static int floodFillLeft(vector<Point>& points, const Mat& gray, const Point& cu
         if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x-1, curPoint.y));
-            return floodFillLeft(points, gray, Point(curPoint.x-1, curPoint.y), seedVal, radius-1, lowDiff, highDiff)+1;
+            return floodFillLeft(points, gray, Point(curPoint.x-1, curPoint.y), seedVal, radius-1, lowDiff, highDiff, isStrict)+1;
         }
     }
 
@@ -77,7 +77,7 @@ static int floodFillRight(vector<Point>& points, const Mat& gray, const Point& c
         if(isConnected(curVal, nextVal, lowDiff, highDiff) && (!isStrict || isConnected(seedVal, nextVal, lowDiff, highDiff)))
         {
             points.push_back(Point(curPoint.x+1, curPoint.y));
-            return floodFillRight(points, gray, Point(curPoint.x+1, curPoint.y), seedVal, radius-1, lowDiff, highDiff)+1;
+            return floodFillRight(points, gray, Point(curPoint.x+1, curPoint.y), seedVal, radius-1, lowDiff, highDiff, isStrict)+1;
         }
     }
 
@@ -104,16 +104,16 @@ int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const d
     base_line.reserve(radius*2+1);
     base_line.push_back(seed);
 
-    floodFillUp(base_line, gray, seed, seedVal, radius, lowDiff, highDiff);
-    floodFillDown(base_line, gray, seed, seedVal, radius, lowDiff, highDiff);
+    floodFillUp(base_line, gray, seed, seedVal, radius, lowDiff, highDiff, isStrict);
+    floodFillDown(base_line, gray, seed, seedVal, radius, lowDiff, highDiff, isStrict);
 
     vector<Point> results;
     results.assign(base_line.begin(), base_line.end());
     for(vector<Point>::const_iterator iter = base_line.cbegin();
         iter != base_line.cend(); ++iter)
     {
-        floodFillLeft(results, gray, *iter, seedVal, radius, lowDiff, highDiff);
-        floodFillRight(results, gray, *iter, seedVal, radius, lowDiff, highDiff);
+        floodFillLeft(results, gray, *iter, seedVal, radius, lowDiff, highDiff, isStrict);
+        floodFillRight(results, gray, *iter, seedVal, radius, lowDiff, highDiff, isStrict);
     }
 
     for(vector<Point>::const_iterator iter = results.cbegin();
