@@ -92,3 +92,13 @@ int clockWiseContour(const Mat& mask, const Point& seed, vector<Point>& contour)
 
     return 0;
 }
+
+int genSimplePolygonContours(const Mat& mask, const Point& seed, vector<Point>& contour, const bool isClockWise = true)
+{
+    if(isClockWise)
+        clockWiseContour(mask, seed, contour);
+    else
+        antiClockContour(mask, seed, contour);
+
+    return 0;
+}

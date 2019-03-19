@@ -50,6 +50,11 @@ add_executable(debug_simpleCustomizedViewer
         glad/glad.c)
 target_link_libraries(debug_simpleCustomizedViewer ${OpenCV_LIBS} ${ASSIMP_LIBRARIES} glfw libGL.so)
 
+# debug generate back panos
+add_executable(debug_backPano debug_backPano.cpp)
+target_link_libraries(debug_backPano ${OpenCV_LIBS})
+
+
 # tiny debug / leetcode
 add_executable(main main.cpp TriangulateSimplePolygon.cpp)
 target_link_libraries(main ${OpenCV_LIBS})

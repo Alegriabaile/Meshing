@@ -99,7 +99,7 @@ int floodFillWithoutHoles(const Mat& gray, Mat& mask, const Point& seed, const d
     //mask = Mat(gray.size()+Size(2,2), CV_8UC1, Scalar(0));
     mask = Mat(gray.size(), CV_8UC1, Scalar(0));
     const double seedVal = gray.at<float>(seed.y, seed.x);
-    const int radius = gray.rows<gray.cols?gray.rows/4:gray.cols/4;
+    const int radius = gray.rows<gray.cols?gray.rows/16:gray.cols/16;
     vector<Point> base_line;
     base_line.reserve(radius*2+1);
     base_line.push_back(seed);

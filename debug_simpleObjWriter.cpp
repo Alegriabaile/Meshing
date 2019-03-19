@@ -19,8 +19,8 @@ extern int triangulateSimplePolygon(const vector<Point>& vertices, vector<Point>
 
 int main()
 {
-    cv::Mat srcImage = imread("/home/ale/CLionProjects/i3d/data/Images/1000.jpg", 1);
-    cv::Mat depthConst = imread("/home/ale/CLionProjects/i3d/data/Depths/1000.png", CV_LOAD_IMAGE_ANYCOLOR|CV_LOAD_IMAGE_ANYDEPTH);
+    cv::Mat srcImage = imread("/home/ale/CLionProjects/i3d/casual3d_data3/Images/1000.jpg", 1);
+    cv::Mat depthConst = imread("/home/ale/CLionProjects/i3d/casual3d_data3/Depths/1000.png", CV_LOAD_IMAGE_ANYCOLOR|CV_LOAD_IMAGE_ANYDEPTH);
     cv::Mat dstImage, depthImage, maskImage;
     
     if (!srcImage.data || !depthConst.data)
@@ -31,7 +31,7 @@ int main()
 
     srcImage.copyTo(dstImage);//复制原图到目标图
     depthConst.convertTo(depthImage, CV_32FC1);
-    maskImage.create(srcImage.rows + 2, srcImage.cols + 2, CV_8UC1);//用原图尺寸初始化掩膜mask
+    maskImage.create(srcImage.rows, srcImage.cols, CV_8UC1);//用原图尺寸初始化掩膜mask
 
 
     double minVal, maxVal;
@@ -42,7 +42,7 @@ int main()
     {
         Mat mask_draw = maskImage.clone();
         double diff = 0.05*depthImage.at<float>(maxLoc.y, maxLoc.x);
-        int temp = floodFillWithoutHoles(depthImage, mask_draw, maxLoc, diff, diff, true);
+        int temp = floodFillWithoutHoles(depthImage, mask_draw, maxLoc, diff, diff, false);
         imshow("mask_draw", mask_draw);
 
         //将depthImage清零
@@ -77,8 +77,8 @@ int main()
     }
 
     depthConst.convertTo(depthImage, CV_32FC1);
-    //writeToSimpleObj(depthImage, triangles, 525, string("./"));
-    writeToCustomizedFile(depthImage, triangles, 525, "./");
+    writeToSimpleObj(depthImage, triangles, 525, string("./"));
+    //writeToCustomizedFile(depthImage, triangles, 525, "./");
     
     return 0;
 }

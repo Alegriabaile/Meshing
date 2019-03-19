@@ -27,7 +27,7 @@ static void onMouse(int event, int x, int y, int, void *) {
     Mat color_draw = g_srcImage.clone();
     Mat color_draw_triangle = g_srcImage.clone();
     Point seed = Point(x, y);
-    double diff = 0.05*g_depthImage.at<float>(seed.y, seed.x);
+    double diff = 0.3*g_depthImage.at<float>(seed.y, seed.x);
     int temp = floodFillWithoutHoles(g_depthImage, mask_draw, seed, diff*20.0/double(g_nLowDifference), diff*20.0/double(g_nUpDifference));
     cout<<"temp: "<<temp<<endl;
     imshow("mask_draw", mask_draw);

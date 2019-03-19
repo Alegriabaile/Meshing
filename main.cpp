@@ -11,47 +11,58 @@ using namespace std;
 
 class Solution {
 public:
-    int divide(int dividend, int divisor)
-    {
-        if(dividend == 0)
-            return 0;
+    vector<vector<int>> result;
+    vector<int> candidates;
 
-        long long int result = 0;
-        long long int dividendl(dividend), divisorl(divisor);
-        bool sign = false;
-        if((dividendl<0) ^ (divisor<0))
-            sign = true;
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        sort(candidates.begin(), candidates.end());
 
-        dividendl = abs(dividendl);
-        divisorl = abs(divisorl);
-
-        int shift = 0;
-        while(dividendl > divisorl<<shift)
+        this->candidates.assign(candidates.begin(), candidates.end());
+        for(int i=candidates.size()-1; i>=0; --i)
         {
-            shift++;
-        }
-        while(shift>=0)
-        {
-            if(dividendl >= divisorl<<shift)
+            if(candidates[i] == target)
+                result.push_back(vector<int>(1, target));
+            else if(candidates[i] < target)
             {
-                result += (long long int)1<<shift;//默认为int
-                dividendl -= divisorl<<shift;
+                vector<int> temp;
+                temp.push_back(candidates[i]);
+                findComb(temp, i, target-candidates[i]);
             }
-            shift--;
         }
-
-        if(sign)
-            result = -result;
-
-        if(result > INT_MAX || result < INT_MIN)
-            return INT_MAX;
-
 
         return result;
     }
 
-};
+    void findComb(vector<int> candidate, int k, int target)
+    {
+        if(target == 0)
+        {
+            result.push_back(candidate);
+            return;
+        }
 
+        if(target < 0 || k < 0)
+            return;
+
+        if(target > 0)
+        {
+            if(candidates[k] > target)
+                findComb(candidate, k-1, target);
+
+            if(candidates[k] <= target )
+            {
+
+                findComb(candidate, k-1, target);//not push candidate
+                candidate.push_back(candidates[k]);
+                findComb(candidate, k, target-candidates[k]);//push candidate
+                findComb(candidate, k-1, target-candidates[k]);
+            }
+
+
+        }
+
+    }
+};
 
 int main()
 {
@@ -135,6 +146,16 @@ vector<Point> vertices{
     waitKey();*/
 
     Solution solution;
-    cout<<solution.divide(-2147483648, -1);
+    vector<int> candidates = {2, 3, 6, 7};
+    int i = 0;
+    int target = 7e1;
+    solution.combinationSum(candidates, target);
+
+    int a = 100;
+    int b = 300;
+    a = a^b;
+    b = a^b;
+    a = a^b;
+    cout<<a<<" "<<b<<endl;
     return 0;
 }
